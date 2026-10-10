@@ -509,3 +509,19 @@ body.light .feedback.no{color:#A33A22}
 .q-row .loading:empty,.q-row .count:empty{display:none}
 .quiz{gap:8px}
 .quiz-top{min-height:0}
+/* 桌機:內容不要拉滿整個螢幕(鍵盤、按鈕才不會又寬又扁) */
+@media (min-width:901px){ main,footer{max-width:860px} }
+/* 每日目標 */
+.goal{display:flex;align-items:center;gap:10px;margin-top:12px}
+.goal .progress{flex:1 1 auto;margin:0;height:8px;border-radius:4px}
+.goal .progress i{background:var(--gold-fill);transition:width .3s}
+.goal .progress i.done{background:var(--teal-fill)}
+.goal .chip{flex:none;font-variant-numeric:tabular-nums}
+/* 模擬考結果 */
+.mock-res{grid-column:1 / -1;display:flex;flex-direction:column;gap:6px}
+.mock-res div{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface-inset);font-size:var(--fs-md)}
+.mock-res b{width:1.4em;color:var(--gold);font-family:"Noto Serif TC",serif}
+.mock-res span{flex:1 1 auto;min-width:0}
+.mock-res i{font-style:normal;font-weight:700}
+.mock-res i.ok{color:var(--teal)} .mock-res i.no{color:#E07A5F}
+.stats-empty{grid-column:1 / -1}

@@ -61,7 +61,7 @@ const GEN = {
     const mel = melody({ meter, bars: 8, range: [-2, 7] });
     const r = render(mel, key, tonic, { acc: p.acc !== false, accent: true, vel: 66 });
     return { play: { ev: r.ev, dur: r.dur }, tap: { kind: "pulse", beat: r.beat, from: 0, until: r.dur },
-      tags: [tr("播放時跟著按「拍」", "Tap along while it plays")], reveal: tr(METER_CH[meter][0], METER_CH[meter][1]) + " · ♩ ≈ " + Math.round(60 / r.beat) };
+      reveal: tr(METER_CH[meter][0], METER_CH[meter][1]) + " · ♩ ≈ " + Math.round(60 / r.beat) };
   },
   /* 幾拍子 / 拍號 */
   meter(p){
@@ -82,7 +82,7 @@ const GEN = {
     if (p.twice) { ev = ev.concat(shift(r.ev, dur + r.beat * 2)); dur = dur * 2 + r.beat * 2; }
     const on = mel.notes.map(n => n.at * r.eighth);
     return { play: { ev, clicks, dur }, tap: { kind: "rhythm", beat: r.beat, iois: on.slice(1).map((x, i) => x - on[i]), n: on.length },
-      tags: [tr(`聽完按「拍」${on.length} 下`, `Then tap ${on.length} times`)], reveal: tr(`${on.length} 個音`, `${on.length} notes`) };
+      reveal: tr(`${on.length} 個音`, `${on.length} notes`) };
   },
   /* 回聲 / 背奏:用鍵盤彈出聽到的音(考試是唱或彈;高八度、低八度都算對) */
   echo(p){

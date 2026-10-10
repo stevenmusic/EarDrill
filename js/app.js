@@ -1,6 +1,6 @@
 /* EarDrill 主程式:單音 / 音程 / 和弦 / 檢定 四個分頁,題目卡(播放、作答、批改)共用 */
 import * as store from "./store.js";
-import { ALL_ITEMS, itemLabel, makeQuestion, pcName, isBlack } from "./ear.js";
+import { ALL_ITEMS, itemLabel, makeQuestion, pcName, isBlack, setSolfege, noteName } from "./ear.js";
 import { makeDrill, drillName, judgeTaps, judgeKeys } from "./aural.js";
 import { tr, T, applyStatic, setLang, getLang, pairText } from "./i18n.js";
 import * as audio from "./audio.js";
@@ -67,25 +67,31 @@ const PRESETS = {
   chord: { __triads: ["maj", "min", "dim", "aug"], __sevenths: ["dom7", "maj7", "min7", "m7b5", "dim7"], __all: ALL_ITEMS.chord.map(x => x.id) }
 };
 const PRESET_NAME = () => ({ __white: tr("白鍵", "White keys"), __all: tr("全部", "All"), __basic: tr("入門", "Basic"), __triads: tr("三和弦", "Triads"), __sevenths: tr("七和弦", "7ths") });
+/* 練習選項(各分頁共用,存在 S.auto / S.adaptive;以前放在題目卡下面佔一整列) */
+const OPTS = () => ["opts", tr("選項", "Options"), [["auto", tr("答對自動下一題", "Auto next")], ["adaptive", tr("加強弱項", "Focus weak")]], "toggle"];
 const PICKERS = {
   note: p => [
     ["preset", tr("快速", "Quick"), Object.keys(PRESETS.note).map(k => [k, PRESET_NAME()[k]])],
     ["set", tr("出哪些音", "Notes"), ALL_ITEMS.note.map(it => [it.id, pcName(it.pc).replace("/", "/​")]), true],
     ["range", tr("音域", "Range"), [["1", tr("1 個八度", "1 oct.")], ["2", tr("2 個八度", "2 oct.")], ["4", tr("4 個八度", "4 oct.")]]],
-    ["ref", tr("參考音", "Reference"), [["C", tr("先聽 C", "C first")], ["A", tr("先聽 A", "A first")], ["none", tr("不給(絕對音感)", "None (absolute)")]]]
+    ["ref", tr("參考音", "Reference"), [["C", tr("先聽 C", "C first")], ["A", tr("先聽 A", "A first")], ["none", tr("不給(絕對音感)", "None (absolute)")]]],
+    ["naming", tr("音名", "Names"), [["letter", "C D E"], ["solfege", tr("Do Re Mi(固定唱名)", "Do Re Mi (fixed do)")]]],
+    OPTS()
   ],
   interval: p => [
     ["preset", tr("快速", "Quick"), Object.keys(PRESETS.interval).map(k => [k, PRESET_NAME()[k]])],
     ["set", tr("出哪些音程", "Intervals"), ALL_ITEMS.interval.map(it => [it.id, itemLabel("interval", it)]), true],
     ["dir", tr("方向", "Direction"), [["up", tr("上行", "Up")], ["down", tr("下行", "Down")], ["harm", tr("同時", "Harmonic")], ["mix", tr("混合", "Mixed")]]],
-    ["root", tr("起音", "Root"), [["rand", tr("隨機", "Random")], ["C", tr("固定 C", "Always C")]]]
+    ["root", tr("起音", "Root"), [["rand", tr("隨機", "Random")], ["C", tr("固定 C", "Always C")]]],
+    OPTS()
   ],
   chord: p => [
     ["preset", tr("快速", "Quick"), Object.keys(PRESETS.chord).map(k => [k, PRESET_NAME()[k]])],
     ["set", tr("出哪些和弦", "Chords"), ALL_ITEMS.chord.map(it => [it.id, itemLabel("chord", it)]), true],
     ["inv", tr("轉位", "Inversions"), [["root", tr("原位", "Root only")], ["all", tr("含轉位", "Include")]]],
     ["style", tr("彈法", "Style"), [["block", tr("同時", "Block")], ["arp", tr("分解", "Broken")], ["both", tr("分解再同時", "Both")], ["mix", tr("混合", "Mixed")]]],
-    ["root", tr("根音", "Root"), [["rand", tr("隨機", "Random")], ["C", tr("固定 C", "Always C")]]]
+    ["root", tr("根音", "Root"), [["rand", tr("隨機", "Random")], ["C", tr("固定 C", "Always C")]]],
+    OPTS()
   ]
 };
 const paneOf = tab => $({ note: "paneNote", interval: "paneInterval", chord: "paneChord" }[tab]);
@@ -97,10 +103,11 @@ function pickSummary(tab){
 }
 function renderPicker(tab){
   const pane = paneOf(tab), p = S.pick[tab];
+  setSolfege(S.pick.note.naming === "solfege");
   pane.querySelector(".rows").innerHTML = PICKERS[tab](p).map(([k, lbl, opts, multi]) =>
-    `<div class="prow"><span class="lbl">${lbl}</span><div class="opts" data-k="${k}"${multi ? ' data-multi="1"' : ""}>` +
+    `<div class="prow"><span class="lbl">${lbl}</span><div class="opts" data-k="${k}"${multi === true ? ' data-multi="1"' : ""}>` +
     opts.map(([v, t]) => {
-      const on = k === "preset" ? PRESETS[tab][v].length === p.set.length && PRESETS[tab][v].every(x => p.set.includes(x)) : multi ? p.set.includes(v) : String(v) === String(p[k]);
+      const on = k === "opts" ? !!S[v] : k === "preset" ? PRESETS[tab][v].length === p.set.length && PRESETS[tab][v].every(x => p.set.includes(x)) : multi === true ? p.set.includes(v) : String(v) === String(p[k]);
       return `<button class="opt" data-v="${v}" aria-pressed="${on}">${t}</button>`;
     }).join("") + `</div></div>`).join("");
   pane.querySelector(".sum").textContent = pickSummary(tab);
@@ -109,6 +116,7 @@ for (const tab of PRACTICE) {
   paneOf(tab).querySelector(".rows").onclick = e => {
     const b = e.target.closest(".opt"); if (!b) return;
     const box = b.closest(".opts"), k = box.dataset.k, v = b.dataset.v, p = S.pick[tab];
+    if (k === "opts") { S[v] = !S[v]; store.save(); renderPicker(tab); syncOpts(); return; }
     if (k === "preset") p.set = [...PRESETS[tab][v]];
     else if (box.dataset.multi) {
       const has = p.set.includes(v);
@@ -119,6 +127,7 @@ for (const tab of PRACTICE) {
   };
 }
 function newPractice(tab){
+  setSolfege(S.pick.note.naming === "solfege");
   const q = makeQuestion(tab, S.pick[tab], S.stats, S.adaptive, tabCur[tab]);
   setQuestion(q, tab);
 }
@@ -158,6 +167,7 @@ function renderExam(){
 }
 $("testsList").onclick = e => {
   const b = e.target.closest(".chip[data-t]"); if (!b) return;
+  mock = null;
   const g = gradeOf(S.exam.system, S.exam.grade), t = g.tests.find(x => x.id === b.dataset.t);
   loadDrill({ test: t, drill: t.drills[Number(b.dataset.i)], idx: Number(b.dataset.i) });
 };
@@ -173,7 +183,38 @@ function drawExam(){
   let d; do { d = all[Math.floor(Math.random() * all.length)]; } while (all.length > 1 && examDrill && d.test.id === examDrill.test.id && d.idx === examDrill.idx && Math.random() < 0.8);
   loadDrill(d);
 }
-$("drawBtn").onclick = drawExam;
+$("drawBtn").onclick = () => { mock = null; drawExam(); };
+
+/* ══ 模擬考:每一項測驗抽一個題型,依序做完,最後看結果(跟 FingerDrill 的模擬考同一個概念) ══ */
+let mock = null;
+$("mockBtn").onclick = () => {
+  const g = gradeOf(S.exam.system, S.exam.grade);
+  const queue = g.tests.filter(t => t.drills.length).map(t => { const idx = Math.floor(Math.random() * t.drills.length); return { test: t, drill: t.drills[idx], idx }; });
+  if (!queue.length) return;
+  mock = { queue, i: 0, res: [] };
+  loadMock();
+};
+function loadMock(){
+  const d = mock.queue[mock.i], m = mock;
+  loadDrill(d); mock = m;
+  cur.label = tr(`模擬考 ${m.i + 1}/${m.queue.length} · `, `Mock ${m.i + 1}/${m.queue.length} · `) + cur.label;
+  renderQuestion();
+}
+function showMockResult(){
+  stopPlayback();
+  const m = mock; mock = null; cur = null; A = null;
+  const ok = m.res.filter(Boolean).length;
+  $("qTitle").classList.remove("empty");
+  $("qTitle").textContent = tr(`模擬考結果 ${ok}/${m.queue.length}`, `Mock result ${ok}/${m.queue.length}`);
+  $("qTags").innerHTML = ""; $("stepQ").textContent = "";
+  $("answers").classList.remove("compact");
+  $("answers").innerHTML = `<div class="mock-res">` + m.queue.map((d, i) =>
+    `<div><b>${d.test.id}</b><span>${drillName(d.drill.type)}</span><i class="${m.res[i] ? "ok" : "no"}">${m.res[i] ? "✓" : "✗"}</i></div>`).join("") + `</div>`;
+  const fb = $("feedback");
+  fb.className = "feedback " + (ok === m.queue.length ? "ok" : "");
+  fb.textContent = ok === m.queue.length ? tr("全部答對!", "All correct!") : tr("錯的項目可以從下方清單再練", "Practise the missed ones from the list below");
+  $("playBtn").disabled = true; $("revealBtn").hidden = true; $("nextBtn").disabled = false;   // 下一題 = 再考一次
+}
 const syncSystemSeg = segBind("systemSeg", () => S.exam ? S.exam.system : "abrsm", v => { ensureExam(); S.exam.system = v; delete S.exam.auto; if (!gradeOf(v, S.exam.grade)) S.exam.grade = 1; store.save(); onExamChange(); });
 $("selGrade").onchange = () => { ensureExam(); S.exam.grade = Number($("selGrade").value); delete S.exam.auto; store.save(); onExamChange(); };
 function onExamChange(){ examDrill = null; tabCur.exam = null; renderExam(); showEmpty(); renderStats(); }
@@ -186,7 +227,7 @@ function switchTab(tab, keepQuestion){
   document.querySelectorAll("#tabbar button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
   document.querySelectorAll(".pane").forEach(p => p.hidden = p.dataset.pane !== tab);
   $("drawBtn").hidden = tab !== "exam"; $("quizTop").hidden = tab !== "exam";
-  $("practiceOpts").hidden = false;
+  $("mockBtn").hidden = tab !== "exam"; mock = null;
   if (PRACTICE.includes(tab)) { renderPicker(tab); if (!keepQuestion) { if (tabCur[tab]) setQuestion(tabCur[tab], tab, true); else newPractice(tab); } }
   else { renderExam(); if (!keepQuestion) { if (tabCur.exam) setQuestion(tabCur.exam, "exam", true); else showEmpty(); } }
   renderStats();
@@ -234,7 +275,7 @@ function renderAnswers(){
   $("feedback").className = "feedback";
   if (q.steps) {
     const st = q.steps[Math.min(A.step, q.steps.length - 1)];
-    $("stepQ").textContent = (q.steps.length > 1 ? `(${Math.min(A.step + 1, q.steps.length)}/${q.steps.length}) ` : "") + st.q;
+    $("stepQ").textContent = q.tab && q.steps.length === 1 ? "" : (q.steps.length > 1 ? `(${Math.min(A.step + 1, q.steps.length)}/${q.steps.length}) ` : "") + st.q;
     const res = A.results[A.step];
     box.classList.toggle("compact", st.choices.every(c => c.label.length <= 3));
     box.innerHTML = st.choices.map((c, i) => {
@@ -278,7 +319,7 @@ function keyboardHTML(k){
   let b = k.hi; while (isBlack(b)) b++;
   const whites = []; for (let m = a; m <= b; m++) if (!isBlack(m)) whites.push(m);
   const w = 100 / whites.length;
-  let html = whites.map(m => `<div class="k wk${k.allowed && !k.allowed.includes(m % 12) ? " off" : ""}" data-m="${m}">${m % 12 === 0 ? "C" + (k.pcOnly ? "" : Math.floor(m / 12) - 1) : ""}</div>`).join("");
+  let html = whites.map(m => `<div class="k wk${k.allowed && !k.allowed.includes(m % 12) ? " off" : ""}" data-m="${m}">${m % 12 === 0 ? (k.pcOnly ? noteName(0) : "C" + (Math.floor(m / 12) - 1)) : ""}</div>`).join("");
   whites.forEach((m, i) => {
     if (m + 1 <= b && isBlack(m + 1)) html += `<div class="k bk${k.allowed && !k.allowed.includes((m + 1) % 12) ? " off" : ""}" data-m="${m + 1}" style="left:calc(${(i + 1) * w}% - ${w * 0.31}%);width:${w * 0.62}%"></div>`;
   });
@@ -358,6 +399,7 @@ function finish(ok){
   const st = S.stats[cur.key] || (S.stats[cur.key] = { n: 0, ok: 0 });
   st.n++; if (ok) st.ok++;
   logAnswer(ok);
+  if (mock) mock.res[mock.i] = ok;
   store.save();
   showResult();
   $("nextBtn").disabled = false; $("revealBtn").hidden = true;
@@ -393,11 +435,16 @@ $("revealBtn").onclick = () => {
   if (cur.keys) { markRightKey(); if (cur.keys.target.length > 1) playSeq({ ev: cur.keys.target.map((m, i) => ({ t: i * 0.5, midi: m, dur: 0.48, vel: 70 })), dur: cur.keys.target.length * 0.5 + 0.5 }); }
 };
 function nextQuestion(){
+  if (S.tab === "exam" && mock) {
+    if (++mock.i >= mock.queue.length) { showMockResult(); return; }
+    loadMock(); startPlayback(); return;
+  }
   if (S.tab === "exam") { if (examDrill) loadDrill(examDrill); else drawExam(); }
   else newPractice(S.tab);
   startPlayback();   // 新題目直接播
 }
 $("nextBtn").onclick = () => {
+  if (!cur && S.tab === "exam") { $("mockBtn").click(); return; }   // 模擬考結果畫面:再考一次
   if (cur && cur.tap && !A.done && A.taps.length) { judgeTapNow(); return; }
   nextQuestion();
 };
@@ -498,12 +545,8 @@ document.addEventListener("gesturestart", e => e.preventDefault());
 for (const ev of ["touchend", "click", "keydown", "pointerdown"]) document.addEventListener(ev, () => audio.unlockAudio(), { capture: true, passive: true });
 
 /* ══ 選項 ══ */
-function syncOpts(){
-  $("optAuto").setAttribute("aria-pressed", String(!!S.auto));
-  $("optAdaptive").setAttribute("aria-pressed", String(!!S.adaptive));
-}
+function syncOpts(){ $("optAuto").setAttribute("aria-pressed", String(!!S.auto)); }
 $("optAuto").onclick = () => { S.auto = !S.auto; store.save(); syncOpts(); };
-$("optAdaptive").onclick = () => { S.adaptive = !S.adaptive; store.save(); syncOpts(); };
 syncOpts();
 
 /* 桌機快捷鍵:空白鍵 播放、Enter / N 下一題、1–9 選答案 */
@@ -549,12 +592,17 @@ function logAnswer(ok){
   while (keys.length > 400) delete S.log[keys.shift()];
   renderLog();
 }
+/* 每日目標:點一下換 10 / 20 / 30 / 50 題 */
+$("goalBtn").onclick = () => { const G = [10, 20, 30, 50]; S.goal = G[(G.indexOf(S.goal || 20) + 1) % G.length]; store.save(); renderLog(); };
 function renderLog(){
   const log = S.log || {}, today = new Date();
   let streak = 0, d = new Date(today);
   if (!(log[dayKey(d)] && log[dayKey(d)].n)) d.setDate(d.getDate() - 1);
   while (log[dayKey(d)] && log[dayKey(d)].n) { streak++; d.setDate(d.getDate() - 1); }
   const t = log[dayKey(today)] || { n: 0, ok: 0 };
+  const goal = S.goal || 20, pct = Math.min(100, Math.round(100 * t.n / goal));
+  $("goalBar").style.width = pct + "%"; $("goalBar").classList.toggle("done", t.n >= goal);
+  $("goalBtn").textContent = tr(`每日目標 ${Math.min(t.n, goal)}/${goal}`, `Daily goal ${Math.min(t.n, goal)}/${goal}`);
   $("logStreak").textContent = streak; $("logToday").textContent = t.n; $("logAcc").textContent = t.n ? Math.round(100 * t.ok / t.n) + "%" : "–";
   const names = getLang() === "en" ? ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] : ["日", "一", "二", "三", "四", "五", "六"];
   let html = "";

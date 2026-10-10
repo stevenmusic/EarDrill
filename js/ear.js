@@ -12,7 +12,12 @@ export const midiName = m => pcName(m) + (Math.floor(m / 12) - 1);
 
 /* ── 單音 ── 答案 = 音級(0–11) */
 export const NOTE_ITEMS = Array.from({ length: 12 }, (_, pc) => ({ id: String(pc), pc }));
-export const noteLabel = it => pcName(it.pc);
+/* 單音分頁的音名:字母(C D E)或固定唱名(Do Re Mi,台灣學生常用) */
+const SOL = ["Do", "Do♯/Re♭", "Re", "Re♯/Mi♭", "Mi", "Fa", "Fa♯/Sol♭", "Sol", "Sol♯/La♭", "La", "La♯/Si♭", "Si"];
+let SOLF = false;
+export const setSolfege = v => { SOLF = !!v; };
+export const noteName = pc => SOLF ? SOL[((pc % 12) + 12) % 12] : pcName(pc);
+export const noteLabel = it => noteName(it.pc);
 export const NOTE_RANGES = { "1": [60, 71], "2": [48, 71], "4": [36, 83] };   // 1 個八度(C4–B4)、2 個八度(C3–B4)、4 個八度(C2–B5)
 
 /* ── 音程 ── 答案 = 半音數(1–12) */
@@ -99,7 +104,7 @@ function build(tab, pick, it, items){
     const m = pickOne(cands), ref = pick.ref === "C" ? 60 : pick.ref === "A" ? 69 : null;
     return { tab, key: "note:" + it.id, sig: "n" + m, play: playOf([m], "single", ref),
       keys: { target: [m], lo: 60, hi: 71, pcOnly: true, allowed: items.map(x => x.pc), mute: true },
-      label: tr("這是什麼音?", "Which note?"), tags: [...questionTags({ tab, ref }), tr("八度不限", "Any octave")], reveal: midiName(m),
+      label: tr("這是什麼音?", "Which note?"), tags: [...questionTags({ tab, ref }), tr("八度不限", "Any octave")], reveal: noteName(m) + (Math.floor(m / 12) - 1),
       compare: id => playOf([Math.floor(m / 12) * 12 + Number(id)], "single", null) };
   }
   if (tab === "interval") {

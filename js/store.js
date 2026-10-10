@@ -5,11 +5,12 @@ const DEFAULTS = {
   exam: null,             // { system, grade }:準備的考試(第一次打開時問);null = 自由練習
   onboarded: false,
   pick: {
-    note: { set: ["0", "2", "4", "5", "7", "9", "11"], range: "1", ref: "C" },
+    note: { set: ["0", "2", "4", "5", "7", "9", "11"], range: "1", ref: "C", naming: "letter" },
     interval: { set: ["M2", "M3", "P4", "P5", "P8"], dir: "up", root: "rand" },
     chord: { set: ["maj", "min"], inv: "root", style: "block", root: "rand" }
   },
   auto: true, adaptive: true,
+  goal: 20,               // 每日目標(題數)
   stats: {},              // "tab:id" 或 "exam|系統|級|測驗|題型" → { n, ok }
   log: {},                // "YYYY-MM-DD" → { n, ok }
   theme: "dark"
