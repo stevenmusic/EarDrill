@@ -185,7 +185,7 @@ function switchTab(tab, keepQuestion){
   S.tab = tab; store.save();
   document.querySelectorAll("#tabbar button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
   document.querySelectorAll(".pane").forEach(p => p.hidden = p.dataset.pane !== tab);
-  $("drawBtn").hidden = tab !== "exam";
+  $("drawBtn").hidden = tab !== "exam"; $("quizTop").hidden = tab !== "exam";
   $("practiceOpts").hidden = false;
   if (PRACTICE.includes(tab)) { renderPicker(tab); if (!keepQuestion) { if (tabCur[tab]) setQuestion(tabCur[tab], tab, true); else newPractice(tab); } }
   else { renderExam(); if (!keepQuestion) { if (tabCur.exam) setQuestion(tabCur.exam, "exam", true); else showEmpty(); } }
@@ -244,7 +244,7 @@ function renderAnswers(){
     }).join("");
   } else if (q.keys) {
     box.classList.remove("compact");
-    $("stepQ").textContent = q.keys.target.length > 1 ? tr(`在鍵盤上彈出 ${q.keys.target.length} 個音`, `Play the ${q.keys.target.length} notes`) : tr("點鍵盤回答", "Answer on the keyboard");
+    $("stepQ").textContent = q.keys.target.length > 1 ? tr(`在鍵盤上彈出 ${q.keys.target.length} 個音`, `Play the ${q.keys.target.length} notes`) : "";   // 單音:題目已經寫「這是什麼音?」,標籤有「八度不限」
     box.innerHTML = `<div class="kbd-wrap"><div class="kbd" id="kbd">${keyboardHTML(q.keys)}</div>` +
       (q.keys.target.length > 1 ? `<div class="kbd-row"><div class="kbd-dots" id="kbdDots"></div><button class="btn ghost small" id="kbdClear">${T("clearKeys")}</button></div>` : "") + `</div>`;
     syncKeys(); fitKeyboard();
@@ -278,7 +278,7 @@ function keyboardHTML(k){
   let b = k.hi; while (isBlack(b)) b++;
   const whites = []; for (let m = a; m <= b; m++) if (!isBlack(m)) whites.push(m);
   const w = 100 / whites.length;
-  let html = whites.map(m => `<div class="k wk${k.allowed && !k.allowed.includes(m % 12) ? " off" : ""}" data-m="${m}">${m % 12 === 0 ? "C" + (Math.floor(m / 12) - 1) : ""}</div>`).join("");
+  let html = whites.map(m => `<div class="k wk${k.allowed && !k.allowed.includes(m % 12) ? " off" : ""}" data-m="${m}">${m % 12 === 0 ? "C" + (k.pcOnly ? "" : Math.floor(m / 12) - 1) : ""}</div>`).join("");
   whites.forEach((m, i) => {
     if (m + 1 <= b && isBlack(m + 1)) html += `<div class="k bk${k.allowed && !k.allowed.includes((m + 1) % 12) ? " off" : ""}" data-m="${m + 1}" style="left:calc(${(i + 1) * w}% - ${w * 0.31}%);width:${w * 0.62}%"></div>`;
   });
@@ -303,7 +303,8 @@ $("answers").addEventListener("pointerdown", e => {
   const key = e.target.closest(".k"); if (!key || !cur || !cur.keys) return;
   e.preventDefault();
   const m = Number(key.dataset.m), k = cur.keys;
-  if (!k.mute || A.done) tapNote(m);
+  if (A.done && k.pcOnly) tapNote(m + 12 * Math.round((k.target[0] - m) / 12));   // 單音答完:在題目的八度出聲比較
+  else if (!k.mute) tapNote(m);
   key.classList.add("on"); setTimeout(() => key.classList.remove("on"), 180);
   if (A.done) return;
   A.keys.push(m);
@@ -362,7 +363,18 @@ function finish(ok){
   $("nextBtn").disabled = false; $("revealBtn").hidden = true;
   syncScoreLine(); renderStats();
   if (S.tab === "exam") renderExam();
-  if (ok && S.auto) { const q0 = cur; setTimeout(() => { if (cur === q0 && !play) nextQuestion(); }, 1100); }
+  if (ok && S.auto) autoNext(cur);
+}
+/* 答對自動下一題:至少停 1.1 秒讓人看到結果;題目還在播(或又按了重聽)就等播完再換。
+   以前時間到時還在播放就直接放棄 → 題目卡住、看起來像「沒有題目了」 */
+function autoNext(q0){
+  const t0 = Date.now();
+  const check = () => {
+    if (cur !== q0 || !S.auto) return;                       // 已經換題 / 關掉自動
+    if (Date.now() - t0 < 1100 || play || starting) { setTimeout(check, 200); return; }
+    nextQuestion();
+  };
+  setTimeout(check, 200);
 }
 function showResult(){
   const fb = $("feedback");

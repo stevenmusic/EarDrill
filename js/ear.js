@@ -99,7 +99,7 @@ function build(tab, pick, it, items){
     const m = pickOne(cands), ref = pick.ref === "C" ? 60 : pick.ref === "A" ? 69 : null;
     return { tab, key: "note:" + it.id, sig: "n" + m, play: playOf([m], "single", ref),
       keys: { target: [m], lo: 60, hi: 71, pcOnly: true, allowed: items.map(x => x.pc), mute: true },
-      label: tr("這是什麼音?", "Which note?"), tags: questionTags({ tab, ref }), reveal: midiName(m),
+      label: tr("這是什麼音?", "Which note?"), tags: [...questionTags({ tab, ref }), tr("八度不限", "Any octave")], reveal: midiName(m),
       compare: id => playOf([Math.floor(m / 12) * 12 + Number(id)], "single", null) };
   }
   if (tab === "interval") {

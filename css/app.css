@@ -503,5 +503,9 @@ body.light .feedback.no{color:#A33A22}
 @media (max-width:360px){ .answers{grid-template-columns:repeat(2,1fr)} .srow{grid-template-columns:6em 1fr 3.8em} }
 .answers.compact{grid-template-columns:repeat(auto-fill, minmax(56px, 1fr))}
 .answers.compact .ans{font-size:var(--fs-lg);font-family:"Noto Serif TC",serif}
-/* 載入取樣的提示放左上角(右上角有「隨機抽一題」與分數) */
-.quiz .loading{left:16px;right:auto}
+/* 題目卡精簡:分數、載入進度跟標籤同一列;「隨機抽一題」那列只在檢定分頁出現 */
+.q-row .loading{position:static;flex:0 1 auto;min-width:0;font-size:var(--fs-2xs);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.q-row .count{flex:none;margin-left:auto;font-size:var(--fs-xs);color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.q-row .loading:empty,.q-row .count:empty{display:none}
+.quiz{gap:8px}
+.quiz-top{min-height:0}
