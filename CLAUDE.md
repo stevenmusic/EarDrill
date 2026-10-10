@@ -26,5 +26,5 @@
 - 答完點選項可以聽那個選項(比較差在哪)
 
 ## 工作方式(省 token)
-- 改好就 push;改了 css/js/data 一定要跑 `node tools/build/stamp.mjs`(版本指紋,不然手機拿到新舊混雜的檔案)
+- 改好、測試沒問題就直接 push 到 main(使用者要求,不用另開分支);改了 css/js/data 一定要跑 `node tools/build/stamp.mjs`(版本指紋,不然手機拿到新舊混雜的檔案)
 - 測試:`node tools/test/verify.mjs`(不用瀏覽器);`cd tools/test && npm i && node smoke.mjs`(要先在根目錄 `python3 -m http.server 8765`)
