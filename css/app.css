@@ -437,17 +437,33 @@ body.light .feedback.no{color:#A33A22}
 .q-title{font-size:clamp(22px, 6vw, 32px)}
 .q-title:not(.empty){height:auto;white-space:normal}
 
-/* 鋼琴鍵盤(回答用):白鍵平分寬度,黑鍵疊在上面 */
+/* 鋼琴鍵盤(回答用):照 ScrollScore 的鍵盤畫法(漸層白鍵 + 頂端高光、光澤黑鍵 + 投影、按下時金色光暈)
+   白鍵長寬比 5.2:1(ScrollScore 的 WHITE_KEY_ASPECT),高度由 JS 依寬度算(fitKeyboard) */
 .kbd-wrap{grid-column:1 / -1;display:flex;flex-direction:column;gap:8px}
-.kbd{position:relative;display:flex;height:clamp(120px, 30vw, 170px);user-select:none;-webkit-user-select:none;touch-action:none}
-.kbd .wk{flex:1 1 0;min-width:0;border:1px solid #2b2418;border-radius:0 0 6px 6px;background:#FFFDF6;margin-right:-1px;position:relative;cursor:pointer;
+.kbd{position:relative;display:flex;gap:1px;height:150px;padding:0 0 2px;border-radius:8px;
+  background:linear-gradient(180deg,#050403,#0C0A07);box-shadow:0 10px 24px -12px rgba(0,0,0,.8);
+  user-select:none;-webkit-user-select:none;touch-action:none}
+.kbd .k{transition:box-shadow .18s ease-out,background .12s}
+.kbd .wk{flex:1 1 0;min-width:0;position:relative;cursor:pointer;border-radius:3px 3px 6px 6px;
+  background:linear-gradient(180deg,#FFFDF6 0%,#DDD6C4 85%,#DDD6C4 100%);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.5);
   display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;font-size:var(--fs-2xs);color:#8a7d5f}
-.kbd .bk{position:absolute;top:0;height:60%;background:#16110A;border:1px solid #000;border-radius:0 0 4px 4px;z-index:2;cursor:pointer}
-.kbd .wk.on{background:#F2B94B}
-.kbd .bk.on{background:#B8860B}
-.kbd .k.right{background:var(--teal-fill) !important}
-.kbd .k.wrong{background:#C8553D !important}
-.kbd .k.off{opacity:.35;pointer-events:none}
+.kbd .bk{position:absolute;top:0;height:60%;z-index:2;cursor:pointer;border-radius:2px 2px 4px 4px;
+  background:linear-gradient(180deg,#3a3a3a,#0a0a0a);box-shadow:0 3px 5px rgba(0,0,0,.45),0 1px 1px rgba(0,0,0,.6)}
+.kbd .bk::after{content:"";position:absolute;left:15%;top:2px;width:30%;height:35%;background:rgba(255,255,255,.18);border-radius:1px;pointer-events:none}
+/* 按下:亮金色 + 光暈(ScrollScore 觸鍵瞬間的顏色) */
+.kbd .wk.on{background:linear-gradient(180deg,#FFF3CC 0%,#F2B94B 85%,#F2B94B 100%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.25),0 0 24px rgba(242,185,75,.85);z-index:1}
+.kbd .bk.on{background:linear-gradient(180deg,#FFE39A,#C4901A);box-shadow:0 0 12px rgba(242,185,75,.9)}
+/* 答對 = 青綠(ScrollScore 左手色)、答錯 = 紅 */
+.kbd .wk.right{background:linear-gradient(180deg,#B6FFF4 0%,#3FBFAE 85%,#3FBFAE 100%) !important;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25),0 0 18px rgba(63,191,174,.85) !important;z-index:1}
+.kbd .bk.right{background:linear-gradient(180deg,#8FFFF0,#22887A) !important;box-shadow:0 0 12px rgba(63,191,174,.9) !important}
+.kbd .wk.wrong{background:linear-gradient(180deg,#FFC4B4 0%,#C8553D 85%,#C8553D 100%) !important;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25),0 0 18px rgba(200,85,61,.8) !important;z-index:1}
+.kbd .bk.wrong{background:linear-gradient(180deg,#E07A5F,#7A2A1A) !important;box-shadow:0 0 12px rgba(200,85,61,.9) !important}
+/* 不出的音:變暗但不透明(以前用 opacity,黑鍵透出底下白鍵的縫線) */
+.kbd .k.off{pointer-events:none}
+.kbd .wk.off{background:linear-gradient(180deg,#8E897D 0%,#6F6A5F 85%,#6F6A5F 100%);color:#4a453c}
+.kbd .bk.off{background:linear-gradient(180deg,#1c1a17,#070605)}
+.kbd .bk.off::after{background:rgba(255,255,255,.06)}
 .kbd-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .kbd-dots{display:flex;gap:5px;flex-wrap:wrap;flex:1 1 auto}
 .kbd-dots i{width:12px;height:12px;border-radius:50%;border:1px solid var(--muted)}
@@ -487,3 +503,5 @@ body.light .feedback.no{color:#A33A22}
 @media (max-width:360px){ .answers{grid-template-columns:repeat(2,1fr)} .srow{grid-template-columns:6em 1fr 3.8em} }
 .answers.compact{grid-template-columns:repeat(auto-fill, minmax(56px, 1fr))}
 .answers.compact .ans{font-size:var(--fs-lg);font-family:"Noto Serif TC",serif}
+/* 載入取樣的提示放左上角(右上角有「隨機抽一題」與分數) */
+.quiz .loading{left:16px;right:auto}

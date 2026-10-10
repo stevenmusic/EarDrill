@@ -247,7 +247,7 @@ function renderAnswers(){
     $("stepQ").textContent = q.keys.target.length > 1 ? tr(`在鍵盤上彈出 ${q.keys.target.length} 個音`, `Play the ${q.keys.target.length} notes`) : tr("點鍵盤回答", "Answer on the keyboard");
     box.innerHTML = `<div class="kbd-wrap"><div class="kbd" id="kbd">${keyboardHTML(q.keys)}</div>` +
       (q.keys.target.length > 1 ? `<div class="kbd-row"><div class="kbd-dots" id="kbdDots"></div><button class="btn ghost small" id="kbdClear">${T("clearKeys")}</button></div>` : "") + `</div>`;
-    syncKeys();
+    syncKeys(); fitKeyboard();
   } else if (q.tap) {
     box.classList.remove("compact");
     $("stepQ").textContent = q.tap.kind === "pulse" ? tr("播放時跟著拍子按", "Tap the beat while it plays") : tr(`聽完之後按出節奏(${q.tap.n} 下)`, `After listening, tap the rhythm (${q.tap.n} taps)`);
@@ -280,10 +280,17 @@ function keyboardHTML(k){
   const w = 100 / whites.length;
   let html = whites.map(m => `<div class="k wk${k.allowed && !k.allowed.includes(m % 12) ? " off" : ""}" data-m="${m}">${m % 12 === 0 ? "C" + (Math.floor(m / 12) - 1) : ""}</div>`).join("");
   whites.forEach((m, i) => {
-    if (m + 1 <= b && isBlack(m + 1)) html += `<div class="k bk${k.allowed && !k.allowed.includes((m + 1) % 12) ? " off" : ""}" data-m="${m + 1}" style="left:calc(${(i + 1) * w}% - ${w * 0.3}%);width:${w * 0.6}%"></div>`;
+    if (m + 1 <= b && isBlack(m + 1)) html += `<div class="k bk${k.allowed && !k.allowed.includes((m + 1) % 12) ? " off" : ""}" data-m="${m + 1}" style="left:calc(${(i + 1) * w}% - ${w * 0.31}%);width:${w * 0.62}%"></div>`;
   });
   return html;
 }
+/* 鍵盤高度照真實比例(白鍵 5.2:1,ScrollScore 的算法),手指要按得到:90–170px */
+function fitKeyboard(){
+  const kb = $("kbd"); if (!kb) return;
+  const n = kb.querySelectorAll(".wk").length || 1;
+  kb.style.height = Math.round(Math.min(170, Math.max(90, kb.clientWidth / n * 5.2))) + "px";
+}
+addEventListener("resize", fitKeyboard);
 function syncKeys(){
   const k = cur.keys, dots = $("kbdDots");
   if (dots) dots.innerHTML = k.target.map((_, i) => {
